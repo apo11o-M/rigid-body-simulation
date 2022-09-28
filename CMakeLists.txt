@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 project(rigid-body-simulation)
 
 add_executable(rigid-body-simulation
-    src/shader.cpp
+    src/util.cpp
     src/main.cpp
 )
 

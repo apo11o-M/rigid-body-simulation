@@ -1,5 +1,5 @@
-#ifndef SHADER_HPP
-#define SHADER_HPP
+#ifndef UTIL_HPP
+#define UTIL_HPP
 
 /**
  * @brief Reads the vertex and fragment shader files and returns the programID of the combined 
