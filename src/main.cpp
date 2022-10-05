@@ -18,6 +18,7 @@
 
 GLFWwindow *window;
 using namespace glm;
+using namespace config;
 using std::cout;
 using std::endl;
 
@@ -75,22 +76,15 @@ int main() {
     GLuint programID = LoadShaders("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
 
     // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit <-> 100 units
-    // glm::mat4 projMatrix = glm::perspective(
-    //                             glm::radians(45.0f),
-    //                             ((float)windowWidth) / ((float)windowHeight), 
-    //                             0.1f, 
-    //                             100.0f
-    //                         );
     glm::mat4 projMatrix = glm::perspective(
                                 glm::radians(45.0f),
-                                4.0f / 3.0f, 
+                                ((float)windowWidth) / ((float)windowHeight), 
                                 0.1f, 
                                 100.0f
                             );
 
     // The camera matrix that we want to rotate the entire world
     glm::mat4 camMatrix = glm::lookAt( glm::vec3(10, 5, 9),  // Camera position, in world space
-    // glm::mat4 camMatrix = glm::lookAt( glm::vec3(4, 3, 3),  // Camera position, in world space
                                        glm::vec3(0, 0, 0),  // Camera's direction, looking at origin
                                        glm::vec3(0, 1, 0)   // Head is up, (0,-1,0) for upside-down
                           );
@@ -103,14 +97,9 @@ int main() {
     // way towards the left
     glm::mat4 mvp = projMatrix * camMatrix * modelMatrix;
 
-    // Get a handle for our "mvp" uniform
+    // Get a handle for our "mvp" uniform. The variable "mvp" refers to the mvp variable in the 
+    // vertex shader
     GLuint matrixID = glGetUniformLocation(programID, "mvp");
-
-    for(int i = 0; i < 4; ++i) {
-        for(int j = 0; j < 4; ++j)
-            printf("%f, ", mvp[i][j]);
-        printf("\n");
-    }
 
     // The vertices of our 2D triangle, lies on the z-plane
     static const GLfloat triangle_vertices[] = {
@@ -130,14 +119,14 @@ int main() {
 
     do {
         glClear(GL_COLOR_BUFFER_BIT);
-        // Draw stuff below here
-        glEnableVertexAttribArray(0);
         // Specify the GLSL shader program that we want to run
         glUseProgram(programID);
-        // Send the transformation matrix to the currently bound shader, in the type "MVP" uniform
-        // This is done in the main loop because each model will have a difference MVP matrix (at 
-        // least for the "M" part)
+        // Send the transformation matrix to the currently bound shader, in the type "mvp" uniform
+        // This is done in the main loop because each model will have a difference mvp matrix (at 
+        // least for the "m" part)
         glUniformMatrix4fv(matrixID, 1, GL_FALSE, glm::value_ptr(mvp));
+        // Draw stuff below here
+        glEnableVertexAttribArray(0);
         // Specify which array we want to draw. In this case we want to draw the vertex buffer obj 
         glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
         glVertexAttribPointer(
