@@ -1,7 +1,7 @@
 # Rigid Body Simulation
 
 ## What is this?
-This is a program to use OpenGL to do rigid body simulation. 
+This is a program using OpenGL to do rigid body simulation. 
 
 Currently I am still learning the basics and experimenting the concept so it will have limited features and bugs. In the future I will be constantly adding more stuff such as movable camera and better graphical interface.
 
