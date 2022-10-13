@@ -10,6 +10,3 @@
 	path = lib/glm
 	url = https://github.com/g-truc/glm.git
 	ignore = dirty
-[submodule "lib/freeglut"]
-	path = lib/freeglut
-	url = https://github.com/FreeGLUTProject/freeglut.git
