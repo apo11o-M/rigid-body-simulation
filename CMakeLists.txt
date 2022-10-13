@@ -2,7 +2,11 @@
 cmake_minimum_required(VERSION 3.1)
 project(rigid-body-simulation)
 
+find_package(Curses REQUIRED)
+include_directories(${CURSES_INCLUDE_DIR})
+
 add_executable(rigid-body-simulation
+    src/fps.cpp
     src/util.cpp
     src/main.cpp
 )
@@ -19,6 +23,7 @@ target_link_libraries(rigid-body-simulation
     PRIVATE glfw
     PRIVATE libglew_static      # where does libglew_static come from?
     PRIVATE glm
+    ${CURSES_LIBRARIES}
 )
 
 # configure_file(

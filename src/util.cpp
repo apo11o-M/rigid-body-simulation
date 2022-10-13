@@ -112,3 +112,7 @@ GLuint LoadShaders(const string vertFilePath, const string fragFilePath) {
 
     return programID;
 }
+
+void drawText(int xPos, int yPos, float r, float g, float b, int font, char *str) {
+
+}

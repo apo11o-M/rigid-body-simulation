@@ -2,11 +2,10 @@
 #define CONFIG_HPP
 
 namespace config {
-    // int windowWidth = 800;
-    // int windowHeight = 450;
-    int windowWidth = 1024;
-    int windowHeight = 768;
-    
+    int windowWidth = 800;
+    int windowHeight = 450;    
+    int textWidth = 500;
+    int textHeight = 250;
 }
 
 #endif
