@@ -17,9 +17,7 @@ using namespace glm;
 using std::cout;
 using std::endl;
 
-int main() {
-    cout << "Program Start" << endl;
-
+int GLInitialization() {
     // Initialize GLFW
     cout << "Initializing GLFW...";
     if (!glfwInit()) {
@@ -53,6 +51,15 @@ int main() {
         return EXIT_FAILURE;
     }
     cout << " Success" << endl;
+    return EXIT_SUCCESS;
+}
+
+int main() {
+    cout << "Program Start" << endl;
+
+    if (GLInitialization() == EXIT_FAILURE) {
+        return EXIT_FAILURE;
+    }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     // set the clear color to be dark blue
@@ -249,11 +256,7 @@ int main() {
         
         fps.update();
         cout << "fps: " << fps.getFps() << endl;
-        initscr();
-        printw("%d", fps.getFps());
-        refresh();
-        getch();
-
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&

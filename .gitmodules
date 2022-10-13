@@ -10,3 +10,6 @@
 	path = lib/glm
 	url = https://github.com/g-truc/glm.git
 	ignore = dirty
+[submodule "lib/glfreetype"]
+	path = lib/glfreetype
+	url = https://github.com/benhj/glfreetype.git
