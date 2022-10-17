@@ -7,12 +7,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glfreetype/TextRenderer.hpp>
 
 #include "util.hpp"
 #include "config.hpp"
 #include "fps.hpp"
 
 GLFWwindow *window;
+// glfreetype::font_data font;
 using namespace glm;
 using std::cout;
 using std::endl;
@@ -50,6 +52,9 @@ int GLInitialization() {
         glfwTerminate();
         return EXIT_FAILURE;
     }
+
+    // font.init("/fonts/Arial.ttf", 25);
+
     cout << " Success" << endl;
     return EXIT_SUCCESS;
 }
@@ -256,6 +261,10 @@ int main() {
         
         fps.update();
         cout << "fps: " << fps.getFps() << endl;
+        // glPushMatrix();
+        // glColor3ub(0, 0, 0xFF);
+        // glfreetype::print(font, 20, 20, "Hello World");
+        // glPopMatrix();
         
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -267,6 +276,8 @@ int main() {
     glDeleteBuffers(1, &colorBuffer);
     glDeleteProgram(programID);
     glDeleteVertexArrays(1, &vertArrayID);
+
+    // font.clean();
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
