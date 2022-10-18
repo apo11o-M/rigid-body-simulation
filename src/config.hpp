@@ -1,11 +1,11 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-namespace config {
-    int windowWidth = 800;
-    int windowHeight = 450;    
-    int textWidth = 500;
-    int textHeight = 250;
-}
+struct Config {
+    const int windowWidth = 800;
+    const int windowHeight = 450;    
+    const int textWidth = 500;
+    const int textHeight = 250;
+};
 
 #endif

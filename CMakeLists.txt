@@ -5,6 +5,7 @@ project(rigid-body-simulation)
 add_executable(rigid-body-simulation
     src/fps.cpp
     src/util.cpp
+    src/controls.cpp
     src/main.cpp
 )
 

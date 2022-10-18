@@ -11,8 +11,12 @@
 #include "util.hpp"
 #include "config.hpp"
 #include "fps.hpp"
+#include "controls.hpp"
 
 GLFWwindow *window;
+Fps fps;
+Config config;
+
 using namespace glm;
 using std::cout;
 using std::endl;
@@ -33,7 +37,7 @@ int GLInitialization() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(config::windowWidth, config::windowHeight, "OpenGL Test", NULL, NULL);
+    window = glfwCreateWindow(config.windowWidth, config.windowHeight, "OpenGL Test", NULL, NULL);
     if (window == NULL) {
         fprintf(stderr, "Failed to open GLFW window.");
         glfwTerminate();
@@ -62,6 +66,8 @@ int main() {
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
     // set the clear color to be dark blue
     glClearColor(0.0f, 0.0f, 0.3f, 0.0f);
 
@@ -83,38 +89,11 @@ int main() {
     // Create and compile the GLSL program from the shaders
     GLuint programID = LoadShaders("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
 
-    // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit <-> 100 units
-    glm::mat4 projMatrix = glm::perspective(
-                                glm::radians(45.0f),
-                                ((float)config::windowWidth) / ((float)config::windowHeight), 
-                                0.1f, 
-                                100.0f
-                            );
-
-    // The camera matrix that we want to rotate the entire world
-    glm::mat4 camMatrix = glm::lookAt( glm::vec3(10, 5, 9),  // Camera position, in world space
-                                       glm::vec3(0, 0, 0),  // Camera's direction, looking at origin
-                                       glm::vec3(0, 1, 0)   // Head is up, (0,-1,0) for upside-down
-                          );
-
-    // This means our model will be at the origin and no transformations
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
-
-    // Our final ModelViewProjection matrix is the multiplication of the three matrices
-    // Note that for matrices multiplication we first perform the right most operation then work our
-    // way towards the left
-    glm::mat4 mvp = projMatrix * camMatrix * modelMatrix;
-
     // Get a handle for our "mvp" uniform. The variable "mvp" refers to the mvp variable in the 
     // vertex shader
     GLuint matrixID = glGetUniformLocation(programID, "mvp");
 
-    // The vertices of our 2D triangle, lies on the z-plane
-    static const GLfloat triangle_vertices[] = {
-        -1.0f, -1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
-         0.0f,  1.0f, 0.0f
-    };
+    glm::mat4 projMatrix, camMatrix, modelMatrix, mvp;
 
     // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a 
     // triangle. A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 
@@ -212,12 +191,43 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
 
-    Fps fps;
+    // The physics simulation update rate, 30 times per second cuz I have a slow computer
+    const double dt = 1.0 / 30.0;
+    // The current elapsed time of the program, in seconds.
+    double currTime = glfwGetTime();
+    // Record how much time has elapsed since last update.
+    double accumulator = 0;
+    // Keeps track the number of updates of the render and logic
+    unsigned int fpsUpdateCount = 0, logicUpdateCount = 0;
 
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // Specify the GLSL shader program that we want to run
         glUseProgram(programID);
+
+        double newTime = glfwGetTime();
+        double frameTime = newTime - currTime;
+        currTime = newTime;
+
+        accumulator += frameTime;
+
+        // Once we go over the threashold, we shall update the logic
+        while (accumulator >= dt) {
+            computeMatricesFromInputs(window, (float)dt);
+            // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit <-> 100 units
+            projMatrix = getProjMatrix();
+            // The camera matrix that we want to rotate the entire world
+            camMatrix = getViewMatrix();
+            // This means our model will be at the origin and no transformations
+            modelMatrix = glm::mat4(1.0f);
+            // Our final ModelViewProjection matrix is the multiplication of the three matrices
+            // Note that for matrices multiplication we first perform the right most operation then work our
+            // way towards the left
+            mvp = projMatrix * camMatrix * modelMatrix;
+            accumulator -= dt;
+            logicUpdateCount++;
+        }
+
         // Send the transformation matrix to the currently bound shader, in the type "mvp" uniform
         // This is done in the main loop because each model will have a difference mvp matrix (at 
         // least for the "m" part)
@@ -255,7 +265,11 @@ int main() {
         glDisableVertexAttribArray(1);
         
         fps.update();
-        cout << "fps: " << fps.getFps() << endl;
+        // if (prevFps != fps.getFps()) {
+            // cout << "fps: " << fps.getFps() << endl;
+        //     prevFps = fps.getFps();
+        // }
+        fpsUpdateCount++;
         
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -267,10 +281,15 @@ int main() {
     glDeleteBuffers(1, &colorBuffer);
     glDeleteProgram(programID);
     glDeleteVertexArrays(1, &vertArrayID);
+    
+    cout << "..Finished" << endl;
+    cout << "Average updates per second: " << 
+            "\n    Fps: " << ((double)fpsUpdateCount) / glfwGetTime() << 
+            "\n    Logic: " << ((double)logicUpdateCount) / glfwGetTime() << 
+            endl;
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
 
-    cout << "..Finished" << endl;
     return EXIT_SUCCESS;
 }

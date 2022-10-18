@@ -11,6 +11,4 @@
  */
 GLuint LoadShaders(const std::string vertFilePath, const std::string fragFilePath);
 
-void drawText(int x, int y, float r, float g, float b, int font, char *str);
-
 #endif

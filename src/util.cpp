@@ -86,7 +86,7 @@ GLuint LoadShaders(const string vertFilePath, const string fragFilePath) {
     }
 
     // Link the shader to the program
-    cout << "Linking programm...";
+    cout << "Linking shaders...";
     GLuint programID = glCreateProgram();
     glAttachShader(programID, vertShaderID);
     glAttachShader(programID, fragShaderID);
@@ -111,8 +111,4 @@ GLuint LoadShaders(const string vertFilePath, const string fragFilePath) {
     glDeleteShader(fragShaderID);
 
     return programID;
-}
-
-void drawText(int xPos, int yPos, float r, float g, float b, int font, char *str) {
-
 }
