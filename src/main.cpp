@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include "util.hpp"
 #include "config.hpp"
@@ -93,7 +94,7 @@ int main() {
     // vertex shader
     GLuint matrixID = glGetUniformLocation(programID, "mvp");
 
-    glm::mat4 projMatrix, camMatrix, modelMatrix, mvp;
+    glm::mat4 projMatrix, camMatrix, modelMatrix, prevMvp, currMvp, interpolatedMvp;
 
     // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a 
     // triangle. A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 
@@ -191,12 +192,15 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
 
-    // The physics simulation update rate, 30 times per second cuz I have a slow computer
+
+    // The physics simulation update rate, 30 times per second cuz I have a potato computer
     const double dt = 1.0 / 30.0;
     // The current elapsed time of the program, in seconds.
     double currTime = glfwGetTime();
     // Record how much time has elapsed since last update.
     double accumulator = 0;
+    // The time of the previous logic update
+    double prevLogicTime = currTime;
     // Keeps track the number of updates of the render and logic
     unsigned int fpsUpdateCount = 0, logicUpdateCount = 0;
 
@@ -208,30 +212,33 @@ int main() {
         double newTime = glfwGetTime();
         double frameTime = newTime - currTime;
         currTime = newTime;
-
         accumulator += frameTime;
-
         // Once we go over the threashold, we shall update the logic
         while (accumulator >= dt) {
             computeMatricesFromInputs(window, (float)dt);
-            // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit <-> 100 units
+            // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit to 100 units
             projMatrix = getProjMatrix();
             // The camera matrix that we want to rotate the entire world
             camMatrix = getViewMatrix();
             // This means our model will be at the origin and no transformations
             modelMatrix = glm::mat4(1.0f);
             // Our final ModelViewProjection matrix is the multiplication of the three matrices
-            // Note that for matrices multiplication we first perform the right most operation then work our
-            // way towards the left
-            mvp = projMatrix * camMatrix * modelMatrix;
+            // Note that for matrices multiplication we first perform the right most operation then 
+            // work our way towards the left
+            prevMvp = currMvp;
+            currMvp = projMatrix * camMatrix * modelMatrix;
             accumulator -= dt;
             logicUpdateCount++;
+            prevLogicTime = glfwGetTime();
         }
+
+        // calculate the interpolated mvp between the previous and the next frame to avoid jitter
+        interpolatedMvp = prevMvp + (currMvp - prevMvp) * float((newTime - prevLogicTime) / dt);
 
         // Send the transformation matrix to the currently bound shader, in the type "mvp" uniform
         // This is done in the main loop because each model will have a difference mvp matrix (at 
         // least for the "m" part)
-        glUniformMatrix4fv(matrixID, 1, GL_FALSE, glm::value_ptr(mvp));
+        glUniformMatrix4fv(matrixID, 1, GL_FALSE, glm::value_ptr(interpolatedMvp));
 
         // 1st attribute buffer: vertices
         glEnableVertexAttribArray(0);
