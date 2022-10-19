@@ -35,7 +35,7 @@ float camSpeed = 4.0f;
 // The mouse moving speed
 float mouseSpeed = 0.001f;
 
-void computeMatricesFromInputs(GLFWwindow *window, float deltaTime) {
+void computeMatricesFromInputs(GLFWwindow *window, float deltaTime, int flag) {
     double xPos, yPos;
     glfwGetCursorPos(window, &xPos, &yPos);
     // std::cout << "xPos: " << xPos << " yPos: " << yPos << std::endl;
@@ -46,36 +46,42 @@ void computeMatricesFromInputs(GLFWwindow *window, float deltaTime) {
     horizAng += mouseSpeed * float(config.windowWidth / 2 - xPos);
     vertAng += mouseSpeed * float(config.windowHeight / 2 - yPos);
 
+    glm::vec3 direction, frontVec, rightVec, upVec;
     // The direction vector, where we convert the spherical coord from the cursor into xyz coord
-    glm::vec3 direction(
+    direction = glm::vec3(
                 cos(vertAng) * sin(horizAng),
                 sin(vertAng),
                 cos(vertAng) * cos(horizAng)
     );
-    glm::vec3 right(
-                sin(horizAng - 3.14f/2.0f),
-                0,
-                cos(horizAng - 3.14f/2.0f)
-    );
-    // Use the cross product to calculate the vector that is perpendicular to both the front-facing
-    // vector and the right vector. Giving us the vector that points towards the top of our head
-    glm::vec3 upVec = glm::cross(right, direction);
+    rightVec = glm::vec3(sin(horizAng - 3.14f/2.0f), 0, cos(horizAng - 3.14f/2.0f));
+    if (flag == 0) {
+        frontVec = direction;
+        // Use the cross product to calculate the vector that is perpendicular to both the front-facing
+        // vector and the right vector. Giving us the vector that points towards the top of our head
+        upVec = glm::cross(rightVec, direction);
+    } else {
+        frontVec = direction * glm::vec3(1.0f, 0, 1.0f);
+        upVec = glm::vec3(0, 1, 0);
+    }
 
     // Key inputs
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camPos += direction * deltaTime * camSpeed;  
+        camPos += glm::normalize(frontVec) * deltaTime * camSpeed;  
     } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camPos -= direction * deltaTime * camSpeed;
+        camPos -= glm::normalize(frontVec) * deltaTime * camSpeed;
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camPos += right * deltaTime * camSpeed;
+        camPos += glm::normalize(rightVec) * deltaTime * camSpeed;
     } else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camPos -= right * deltaTime * camSpeed;
+        camPos -= glm::normalize(rightVec) * deltaTime * camSpeed;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camPos += upVec * deltaTime * camSpeed;
+        camPos += glm::normalize(upVec) * deltaTime * camSpeed;
     } else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        camPos -= upVec * deltaTime * camSpeed;
+        camPos -= glm::normalize(upVec) * deltaTime * camSpeed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
+        config.inputMode = !config.inputMode;
     }
 
     // Matrix calculation

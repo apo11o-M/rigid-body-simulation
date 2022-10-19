@@ -16,6 +16,7 @@
 
 GLFWwindow *window;
 Fps fps;
+// The basic configuration for the program. 
 Config config;
 
 using namespace glm;
@@ -56,15 +57,6 @@ int GLInitialization() {
         return EXIT_FAILURE;
     }
     cout << " Success" << endl;
-    return EXIT_SUCCESS;
-}
-
-int main() {
-    cout << "Program Start" << endl;
-
-    if (GLInitialization() == EXIT_FAILURE) {
-        return EXIT_FAILURE;
-    }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
@@ -77,6 +69,18 @@ int main() {
     // accept the fragment if it is close to the camera than the former one. This operation will be 
     // performed in every pixel drawn on the screen.
     glDepthFunc(GL_LESS);
+    // Enable back face culling -> stop render the triangles that are behind the camera
+    glEnable(GL_CULL_FACE);
+    
+    return EXIT_SUCCESS;
+}
+
+int main() {
+    cout << "Program Start" << endl;
+
+    if (GLInitialization() == EXIT_FAILURE) {
+        return EXIT_FAILURE;
+    }
 
     // Use the VAO(vertex array objects) to send the data from VBO to the shaders. VAO also 
     // describes what type of data is contained within a VBO, and which shader variables the data 
@@ -192,7 +196,6 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
 
-
     // The physics simulation update rate, 30 times per second cuz I have a potato computer
     const double dt = 1.0 / 30.0;
     // The current elapsed time of the program, in seconds.
@@ -215,7 +218,7 @@ int main() {
         accumulator += frameTime;
         // Once we go over the threashold, we shall update the logic
         while (accumulator >= dt) {
-            computeMatricesFromInputs(window, (float)dt);
+            computeMatricesFromInputs(window, (float)dt, config.inputMode);
             // The projection matrix with 45˚ fov; window ratio, display range 0.1 unit to 100 units
             projMatrix = getProjMatrix();
             // The camera matrix that we want to rotate the entire world

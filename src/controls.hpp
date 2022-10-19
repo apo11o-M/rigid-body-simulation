@@ -7,7 +7,7 @@
 /**
  * @brief Calculate the projection and view matrices based on the keyboard input
  */
-void computeMatricesFromInputs(GLFWwindow *window, float deltaTime);
+void computeMatricesFromInputs(GLFWwindow *window, float deltaTime, int flag);
 
 /**
  * @brief Get the View Matrix object
