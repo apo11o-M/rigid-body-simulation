@@ -9,6 +9,6 @@
  * @param fragFilePath The file path of the fragment shader
  * @return GLuint
  */
-GLuint LoadShaders(const std::string vertFilePath, const std::string fragFilePath);
+GLuint shaderLoader(const std::string vertFilePath, const std::string fragFilePath);
 
 #endif

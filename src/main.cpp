@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -13,9 +14,9 @@
 #include "config.hpp"
 #include "fps.hpp"
 #include "controls.hpp"
+#include "obj_file_parser.hpp"
 
 GLFWwindow *window;
-Fps fps;
 // The basic configuration for the program. 
 Config config;
 
@@ -82,6 +83,14 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    Fps fps;
+
+    vector<glm::vec3> modelVertices; 
+    vector<glm::vec2> modelUVs;
+    vector<glm::vec3> modelNormals;
+    ObjFileParser parser;
+    parser.parseObjFile("./model/teapot.obj", modelVertices, modelUVs, modelNormals);
+
     // Use the VAO(vertex array objects) to send the data from VBO to the shaders. VAO also 
     // describes what type of data is contained within a VBO, and which shader variables the data 
     // should be sent to.
@@ -92,7 +101,7 @@ int main() {
     glBindVertexArray(vertArrayID);
 
     // Create and compile the GLSL program from the shaders
-    GLuint programID = LoadShaders("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
+    GLuint programID = shaderLoader("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
 
     // Get a handle for our "mvp" uniform. The variable "mvp" refers to the mvp variable in the 
     // vertex shader
@@ -100,87 +109,11 @@ int main() {
 
     glm::mat4 projMatrix, camMatrix, modelMatrix, prevMvp, currMvp, interpolatedMvp;
 
-    // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a 
-    // triangle. A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 
-    // vertices
-    static const GLfloat cube_vertices[] = {
-        -1.0f,-1.0f,-1.0f, // triangle 1 : begin
-        -1.0f,-1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f, // triangle 1 : end
-        1.0f, 1.0f,-1.0f, // triangle 2 : begin
-        -1.0f,-1.0f,-1.0f,
-        -1.0f, 1.0f,-1.0f, // triangle 2 : end
-        1.0f,-1.0f, 1.0f,
-        -1.0f,-1.0f,-1.0f,
-        1.0f,-1.0f,-1.0f,
-        1.0f, 1.0f,-1.0f,
-        1.0f,-1.0f,-1.0f,
-        -1.0f,-1.0f,-1.0f,
-        -1.0f,-1.0f,-1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f,-1.0f,
-        1.0f,-1.0f, 1.0f,
-        -1.0f,-1.0f, 1.0f,
-        -1.0f,-1.0f,-1.0f,
-        -1.0f, 1.0f, 1.0f,
-        -1.0f,-1.0f, 1.0f,
-        1.0f,-1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f,-1.0f,-1.0f,
-        1.0f, 1.0f,-1.0f,
-        1.0f,-1.0f,-1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f,-1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f,-1.0f,
-        -1.0f, 1.0f,-1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f,-1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f, 1.0f,
-        1.0f,-1.0f, 1.0f
-    };
-
-    // One color for each vertex. They were generated randomly.
-    static const GLfloat cube_colors[] = {
-        0.583f,  0.771f,  0.014f,
-        0.609f,  0.115f,  0.436f,
-        0.327f,  0.483f,  0.844f,
-        0.822f,  0.569f,  0.201f,
-        0.435f,  0.602f,  0.223f,
-        0.310f,  0.747f,  0.185f,
-        0.597f,  0.770f,  0.761f,
-        0.559f,  0.436f,  0.730f,
-        0.359f,  0.583f,  0.152f,
-        0.483f,  0.596f,  0.789f,
-        0.559f,  0.861f,  0.639f,
-        0.195f,  0.548f,  0.859f,
-        0.014f,  0.184f,  0.576f,
-        0.771f,  0.328f,  0.970f,
-        0.406f,  0.615f,  0.116f,
-        0.676f,  0.977f,  0.133f,
-        0.971f,  0.572f,  0.833f,
-        0.140f,  0.616f,  0.489f,
-        0.997f,  0.513f,  0.064f,
-        0.945f,  0.719f,  0.592f,
-        0.543f,  0.021f,  0.978f,
-        0.279f,  0.317f,  0.505f,
-        0.167f,  0.620f,  0.077f,
-        0.347f,  0.857f,  0.137f,
-        0.055f,  0.953f,  0.042f,
-        0.714f,  0.505f,  0.345f,
-        0.783f,  0.290f,  0.734f,
-        0.722f,  0.645f,  0.174f,
-        0.302f,  0.455f,  0.848f,
-        0.225f,  0.587f,  0.040f,
-        0.517f,  0.713f,  0.338f,
-        0.053f,  0.959f,  0.120f,
-        0.393f,  0.621f,  0.362f,
-        0.673f,  0.211f,  0.457f,
-        0.820f,  0.883f,  0.371f,
-        0.982f,  0.099f,  0.879f
-    };
+    // randomly generate the colors for the triangles
+    GLfloat modelColors[modelVertices.size() * 3];
+    for (int i = 0; i < modelVertices.size() * 3; i++) {
+        modelColors[i] = static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
+    }
 
     // Use the VBO(vertex buffer object) to send the triangle coordinate data to the gpu memory 
     GLuint vertBuffer;
@@ -189,12 +122,14 @@ int main() {
     // Specify the target of the buffer object. In this case vertBuffer is bound to GL_ARRAY_BUFFER
     glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
     // Populate the GL_ARRAY_BUFFER with the vertices of our triangle
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, modelVertices.size() * sizeof(glm::vec3), &modelVertices[0], GL_STATIC_DRAW);
 
     GLuint colorBuffer;
     glGenBuffers(1, &colorBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(modelColors), &modelColors[0], GL_STATIC_DRAW);
 
     // The physics simulation update rate, 30 times per second cuz I have a potato computer
     const double dt = 1.0 / 30.0;
@@ -268,8 +203,8 @@ int main() {
             (void*)0    // array buffer offset
         );
 
-        // Actually draw the triangle
-        glDrawArrays(GL_TRIANGLES, 0, 12 * 3); // startfrom vertex 0, 12 * 3 because 12 triangles
+        // Actually draw the triangle starting from vertex 0. Note that one face has three vertices
+        glDrawArrays(GL_TRIANGLES, 0, modelVertices.size()); 
         
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
@@ -288,7 +223,7 @@ int main() {
 
     // Cleanup the VBO and shader
     glDeleteBuffers(1, &vertBuffer);
-    glDeleteBuffers(1, &colorBuffer);
+    // glDeleteBuffers(1, &colorBuffer);
     glDeleteProgram(programID);
     glDeleteVertexArrays(1, &vertArrayID);
     

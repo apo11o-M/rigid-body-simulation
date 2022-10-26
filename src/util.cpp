@@ -7,7 +7,7 @@
 
 using namespace std;
 
-GLuint LoadShaders(const string vertFilePath, const string fragFilePath) {
+GLuint shaderLoader(const string vertFilePath, const string fragFilePath) {
     // Read the vertex shader from the file
     string vertShaderCode;
     ifstream vertShaderFile;

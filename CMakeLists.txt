@@ -6,6 +6,7 @@ add_executable(rigid-body-simulation
     src/fps.cpp
     src/util.cpp
     src/controls.cpp
+    src/obj_file_parser.cpp
     src/main.cpp
 )
 
