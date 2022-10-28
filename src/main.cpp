@@ -15,6 +15,7 @@
 #include "fps.hpp"
 #include "controls.hpp"
 #include "obj_file_parser.hpp"
+#include "block.hpp"
 
 GLFWwindow *window;
 // The basic configuration for the program. 
@@ -82,15 +83,6 @@ int main() {
     if (GLInitialization() == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
-
-    Fps fps;
-
-    vector<glm::vec3> modelVertices; 
-    vector<glm::vec2> modelUVs;
-    vector<glm::vec3> modelNormals;
-    ObjFileParser parser;
-    parser.parseObjFile("./model/teapot.obj", modelVertices, modelUVs, modelNormals);
-
     // Use the VAO(vertex array objects) to send the data from VBO to the shaders. VAO also 
     // describes what type of data is contained within a VBO, and which shader variables the data 
     // should be sent to.
@@ -100,37 +92,42 @@ int main() {
     // Bind the vertex array object with vertArrayID
     glBindVertexArray(vertArrayID);
 
-    // Create and compile the GLSL program from the shaders
-    GLuint programID = shaderLoader("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
+    Fps fps;
+    ObjFileParser parser;
 
-    // Get a handle for our "mvp" uniform. The variable "mvp" refers to the mvp variable in the 
-    // vertex shader
-    GLuint matrixID = glGetUniformLocation(programID, "mvp");
+    vector<glm::vec3> cubeVertices, cubeNormals;
+    vector<glm::vec2> cubeUVs;
+    parser.parseObjFile("./model/default_cube.obj", cubeVertices, cubeUVs, cubeNormals);
 
-    glm::mat4 projMatrix, camMatrix, modelMatrix, prevMvp, currMvp, interpolatedMvp;
+    vector<glm::vec3> teapotVertices, teapotNormals;
+    vector<glm::vec2> teapotUVs;
+    parser.parseObjFile("./model/teapot.obj", teapotVertices, teapotUVs, teapotNormals);
 
     // randomly generate the colors for the triangles
-    GLfloat modelColors[modelVertices.size() * 3];
-    for (int i = 0; i < modelVertices.size() * 3; i++) {
-        modelColors[i] = static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
+    vector<GLfloat> teapotColors(teapotVertices.size() * 3);
+    for (int i = 0; i < teapotColors.size(); i++) {
+        teapotColors[i] = static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
+    }
+    vector<GLfloat> cubeColors(cubeVertices.size() * 3);
+    for (int i = 0; i < cubeColors.size(); i++) {
+        cubeColors[i] = static_cast<GLfloat>(rand()) / static_cast<GLfloat>(RAND_MAX);
     }
 
     // Use the VBO(vertex buffer object) to send the triangle coordinate data to the gpu memory 
-    GLuint vertBuffer;
-    // Generate 1 vertex buffer object and put the result identifer in the vertBuffer
-    glGenBuffers(1, &vertBuffer);
-    // Specify the target of the buffer object. In this case vertBuffer is bound to GL_ARRAY_BUFFER
-    glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
-    // Populate the GL_ARRAY_BUFFER with the vertices of our triangle
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, modelVertices.size() * sizeof(glm::vec3), &modelVertices[0], GL_STATIC_DRAW);
+    GLuint teapotVertBuffer = 0, teapotColorBuffer = 0;
+    vboInit(teapotVertBuffer, teapotColorBuffer, teapotVertices, teapotColors);
 
-    GLuint colorBuffer;
-    glGenBuffers(1, &colorBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(modelColors), &modelColors[0], GL_STATIC_DRAW);
+    GLuint cubeVertBuffer = 0, cubeColorBuffer = 0;
+    vboInit(cubeVertBuffer, cubeColorBuffer, cubeVertices, cubeColors);
 
+
+    // Create and compile the GLSL program from the shaders
+    GLuint programID = shaderLoader("./shader/VertexShader.vert", "./shader/FragmentShader.frag");
+    // Get a handle for our "mvp" uniform. The variable "mvp" refers to the mvp variable in the 
+    // vertex shader
+    GLuint matrixID = glGetUniformLocation(programID, "mvp");
+    glm::mat4 projMatrix, camMatrix, modelMatrix, prevMvp, currMvp, interpolatedMvp;
+    
     // The physics simulation update rate, 30 times per second cuz I have a potato computer
     const double dt = 1.0 / 30.0;
     // The current elapsed time of the program, in seconds.
@@ -147,6 +144,9 @@ int main() {
         // Specify the GLSL shader program that we want to run
         glUseProgram(programID);
 
+        // -----------------------------------------------------------------------------------------
+        // Time step magic, ensure physics works consistent across different systems.
+        // -----------------------------------------------------------------------------------------
         double newTime = glfwGetTime();
         double frameTime = newTime - currTime;
         currTime = newTime;
@@ -169,46 +169,20 @@ int main() {
             logicUpdateCount++;
             prevLogicTime = glfwGetTime();
         }
-
         // calculate the interpolated mvp between the previous and the next frame to avoid jitter
         interpolatedMvp = prevMvp + (currMvp - prevMvp) * float((newTime - prevLogicTime) / dt);
-
+        
         // Send the transformation matrix to the currently bound shader, in the type "mvp" uniform
         // This is done in the main loop because each model will have a difference mvp matrix (at 
         // least for the "m" part)
         glUniformMatrix4fv(matrixID, 1, GL_FALSE, glm::value_ptr(interpolatedMvp));
 
-        // 1st attribute buffer: vertices
-        glEnableVertexAttribArray(0);
-        // Specify which array we want to draw. In this case we want to draw the vertex buffer obj 
-        glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
-        glVertexAttribPointer(
-            0,          // attribute 0, match the layout in the shader
-            3,          // size
-            GL_FLOAT,   // type
-            GL_FALSE,   // normalized?
-            0,          // stride
-            (void*)0    // array buffer offset
-        );
+        // -----------------------------------------------------------------------------------------
+        // Draws the model
+        // -----------------------------------------------------------------------------------------
+        renderModel(cubeVertBuffer, cubeColorBuffer, cubeVertices);
+        renderModel(teapotVertBuffer, teapotColorBuffer, teapotVertices);
 
-        // 2nd attribute buffer: colors
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-        glVertexAttribPointer(
-            1,          // attribute. match the layout in the shader
-            3,          // size
-            GL_FLOAT,   // type
-            GL_FALSE,   // normalized?
-            0,          // stride
-            (void*)0    // array buffer offset
-        );
-
-        // Actually draw the triangle starting from vertex 0. Note that one face has three vertices
-        glDrawArrays(GL_TRIANGLES, 0, modelVertices.size()); 
-        
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        
         fps.update();
         // if (prevFps != fps.getFps()) {
             // cout << "fps: " << fps.getFps() << endl;
@@ -222,8 +196,10 @@ int main() {
              glfwWindowShouldClose(window) == 0);
 
     // Cleanup the VBO and shader
-    glDeleteBuffers(1, &vertBuffer);
-    // glDeleteBuffers(1, &colorBuffer);
+    glDeleteBuffers(1, &teapotVertBuffer);
+    glDeleteBuffers(1, &teapotColorBuffer);
+    glDeleteBuffers(1, &cubeVertBuffer);
+    glDeleteBuffers(1, &cubeColorBuffer);
     glDeleteProgram(programID);
     glDeleteVertexArrays(1, &vertArrayID);
     

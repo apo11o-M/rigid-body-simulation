@@ -11,6 +11,9 @@ using std::string;
 using std::cout;
 using std::endl;
 
+/**
+ * @brief An obj file parser that reads in a 3D model obj file.
+ */
 class ObjFileParser {
     public:
         ObjFileParser();
